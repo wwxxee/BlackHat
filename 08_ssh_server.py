@@ -4,7 +4,9 @@ import socket
 import sys
 import threading
 
-
+"""
+ssh反向shell的服务端
+"""
 # 获取当前运行脚本的绝对路径（不包含文件名）
 CWD = os.path.dirname(os.path.realpath(__file__))
 

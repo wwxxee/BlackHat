@@ -3,8 +3,8 @@ import socket
 import os
 
 
-# host to listen on
-HOST = "192.168.114.26"
+# host to listen on, 本机IP地址
+HOST = "10.28.5.179"
 
 def main():
     # create raw socket

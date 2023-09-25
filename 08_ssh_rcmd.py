@@ -2,12 +2,15 @@ import paramiko
 import shlex
 import subprocess
 
+"""
+ssh的反向shell
+"""
+
 
 def ssh_command(ip, port, user, passwd, command):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(ip, port, user, passwd)
-
 
     # get_transport():返回底层传输对象的SSH连接。这可以用来执行低级任务,像打开特定类型的通道
     # Returns:	the Transport for this connection
