@@ -30,11 +30,11 @@ def outlook(subject, contents):
     :param contents:
     :return:
     """
-    # 打开进程
+    # 打开进程.Creates a Dispatch based COM object.
     outlook = win32com.client.Dispatch("Outlook.Application")
     # 创建MailItem对象
     message = outlook.CreateItem(0)
-    message.DeleteAfterSubmit = True  # 发送右键后将其立即删除
+    message.DeleteAfterSubmit = True  # 发送邮件后将其立即删除
     message.Subject = subject
     message.Body = contents.decode()
     message.To = target_accounts[0]
@@ -42,4 +42,4 @@ def outlook(subject, contents):
 
 
 if __name__ == '__main__':
-    plain_email('test message', 'attct.')
+    plain_email('test message', b'attct.')
