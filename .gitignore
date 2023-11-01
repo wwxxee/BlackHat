@@ -513,5 +513,5 @@ Temporary Items
 !.gitignore
 !.gitsubmodules
 
-.pri
-.pub
+*.pri
+*.pub
