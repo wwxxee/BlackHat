@@ -14,7 +14,7 @@ win32serviceutil.ServiceFramework是封装得很好的Windows服务框架
 windows 服务参考：https://www.jianshu.com/p/7f31ecebda28
 """
 
-SOURCE_DIR = 'D:\\test\\tmp'
+SOURCE_DIR = 'C:\\Users\\test\\temp'
 TARGET_DIR = 'C:\\Windows\\TEMP'
 
 
@@ -40,6 +40,7 @@ class BHServerService(win32serviceutil.ServiceFramework):
         self.main()
 
     def main(self):
+        servicemanager.LogInfoMsg("Service is running")
         while True:
             ret_code = win32event.WaitForSingleObject(self.hWaitStop, self.timeout)
             # WAIT_OBJECT_0  0x00000000L  指定对象的状态已发出信号。
@@ -49,7 +50,12 @@ class BHServerService(win32serviceutil.ServiceFramework):
             src = os.path.join(SOURCE_DIR, 'bhservice_task.vbs')
             shutil.copy(src, self.vbs)
             subprocess.call("cscript.exe %s" % self.vbs, shell=False)
-            # subprocess.call('calc.exe')
+            servicemanager.LogInfoMsg("running script")
+            # os.system('calc.exe')
+            # Windows服务在会话0中运行，交互式程序在不同的会话中运行。通常，当有一个登录用户时，这将是会话1
+            # 代码将在会话0中创建进程，因为它在会话0中运行。因此，会话1中的交互式用户桌面不能与这些进程交互
+            # 所以创建notepad.exe 或者calc.exe都将不能在桌面上显示出来。
+            # 但实际上已经运行了
             os.unlink(self.vbs)
 
 
